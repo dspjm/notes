@@ -1,0 +1,167 @@
+
+ext2:
+module init:
+init_inodecache(): init kmem_cache for ext2_inode
+register filesystem
+
+
+
+ext2_mount:
+It just called mount_bdev(), and pass it's own fill_super function to it.
+
+mount_bdev(): first, it calls blkdev_get_by_path() to get a bdev by path, then
+calls sget() to find or allocate a super_block structure, and it calls
+fill_super() to fill the super_block, which is ext2_fill_super() in this case.
+If the super_block was find rather than allocated, nothing would be done.
+
+ext2_fill_super(): first, we allocate some filesystem specific datastructures,
+in this case it is ext2_sb_info, ext2_super_block, and sbi is assigned to
+sb->s_fs_info, es is assigned to sbi->s_es (ext2_sb_info is extended information
+about the filesystem, like fragment, inode, block size etc., ext2_super_block is
+the on disk super block structure); then, we can get a inode *root from
+ext2_iget(); then, we will get a dentry created by d_make_root() and assigned to
+sb->s_root, other parts of the function(before or after functions I just said)
+are basically on purpose of setting proper values of sb ,sbi, ei.
+
+
+
+
+mount system call:
+Firstly, it just transfer all the parameters from userspace to kernelspace and
+find mountpoint into path by calling kern_path
+
+Secondly, it just calls do_mount(), which calls security_sb_mount() to do
+security checks, finally it calls do_new_mount(), do_move_mount() or other mount
+functions.
+do_new_mount(): it calls get_fs_type() to get a file_system_type from name,
+then it calls vfs_kern_mount() to do the mount.
+
+vfs_kern_mount(): it first call alloc_vfsmnt() to allocate mount structure,
+then it calls mount_fs().
+
+mount_fs(): it calls the mount operation of file_system_type, which will return the
+root dentry, then, assign root->d_sb to sb, mount_fs() will return root.
+
+`vfs_kern_mount(): it then initialize mount mnt it allcated and add it
+to the root->d_sb->s_mounts list, and return the mnt.
+
+`do_new_mount(): it would call do_add_mount() to add the mnt to to the mnt
+tree
+
+do_add_mount(): first it would call lock_mount(path) to create a mountpoint
+structure, which has it's m_dentry set to path's dentry, also it would add the
+mountpoint to the mountpoint hash list. However if lock_mount() finds that
+the path is already a mount point, it would set path->mnt to the mount, and retry,
+until it is not a mountpoint, i.e., it would find until the last mount of the
+mount point.  Then it would use real_mount(path->mnt) to get the last mount's
+mount, there is a function graft_tree() which calls attach_recursive_mnt() to
+attach the mount to the mountpoint.
+
+
+
+open system call:
+call do_sys_open() with dfd=AT_FDCWFD
+
+do_sys_open(): calls build_open_flags() which filter and set some flags based on
+user-set flag
+do_filp_open(): try sevaral times of path_openat() with different flags
+path_openat(): allocate struct file. call path_init().
+
+path_init(): this function mainly initializes nameidata. set nd->last_type to
+LAST_ROOT, add nd->flags with LOOKUP_JUMPED and set nd->depth to 0 first, then
+if LOOKUP_ROOT is set, we just set nd to root state and return. Else if first
+character in name is '/', we set nd to root too. else if dfd == AT_FDCWD, then
+we find current directory path through current->fs, other situations are flags
+has some other value.
+
+`path_openat(): then we call link_path_walk() to walk the path.
+
+link_path_walk(): because nd->path and nd->inode is properly set, so the basic
+idea was to walk component one at a time until name[len] is NULL(note that if
+name[len] is NULL, we return immdediately, so we just walk to the predecessor).
+So we just bypass all the preceding slashes and jump into a loop. Firstly, we
+call hash_name()
+
+hash_name(): this function was used to get length of the first component in
+path. It uses a has_zero bitwise funcion to go by all the nonslashes, and stop
+at the first slash. Also, this function calculates the hash value of the
+component.
+
+`link_path_walk(): then we set type depends on the component. Then we set nd
+accordingly. Then, if name[len] is NULL we return, if not, it must be / and
+bypass all slashed, if still NULL, return. If not, we call walk_component()
+
+walk_component(): if nd->last_type is of dots, we call handle_dots(), otherwise
+we call lookup_fast()
+
+lookup_fast(): if LOOKUP_RCU is set, it will call __d_lookup_rcu() first.
+__d_lookup_rcu(): there is a d_hash, a dentry hash list, we will try to compare
+every entry in the list.
+`lookup_fast(): if we found the dentry, then, we will check if we have to
+revalidate it. If we do, we call d_revalidate() which will call revalidate
+operation on the dentry. Then we will call __follow_mount_rcu()
+__follow_mount_rcu(): we will call __lookup_mnt()
+__lookup_mnt(): which basically just search the mount_hashtable to find the
+corresponding mount, the dir parameter decides whether it find the last or first
+mount on path. Then return the found mount or NULL.
+`__follow_mount_rcu(): then set fields in nd and path properly, and try to find
+next mount on path in a look until none was found.
+`lookup_fast(): We might return 0, or we reach unlazy. If we reach unlazy, we
+call unlazy_walk() which does nothing but switching to ref walk mode. If
+LOOKUP_RCU is not set in the first place, then we call __d_lookup() which is a
+racy version of __d_looup_rcu(). Then we just do some revalidate and assignments
+and return.
+
+`walk_component(): if we just need another try and not a serious error, err > 0,
+we just call lookup_slow().
+lookup_slow(): we call __lookup_hash() first.
+__lookup_hash(): we call lookup_dcache().
+lookup_dcache(): we call d_lookup().
+d_lookup(): this function searches for a dentry in dentry hashable, which calls
+__d_lookup(), using a seq lock.
+`lookup_dcache(): if we didn't find the dentry, we will call d_alloc()
+d_alloc(): we call __dalloc() to allocate a dentry.
+_dalloc(): it calls kmem_cache_alloc() allocate a dentry, and set some fields of
+it properly, like d_name.
+`d_alloc(): we assign the parent of dentry properly.
+`lookup_dcache(): if allocation failed return -NOMEM, other wise we set
+need_lookup to be true. All in all, we return dentry.
+`__lookup_fast(): we will call lookup_real() which will call the lookup function
+of the base->d_inode.
+
+`walk_component(): we call should_follow_link() to find out whech we should follow
+link, this was decided by whether we set the follow parameter or inode has operation
+follow_link assigned, and follow is set by default in link_path_walk().
+`link_path_walk(): if we have err > 0, then, we should follow link, we call
+nested_symlink() to follow link.
+
+nested_symlink(): we call follow_link to resolve struct path for a link.
+follow_link(): first we see if current->total_link_count >= 40, if so, we goto
+out_put_nd_path, otherwise we call cond_resched() to reschedule ourlselves, then
+current->total_link_count++, we call nd_set_link() to set
+nd->saved_names[nd->depth] to NULL. We set nd->last_type to LAST_BIND, and we
+call i_op->follow_link(), and return a cookie being passed to i_op->put_link()
+later. Then we call nd_get_link() to get the nd->save_names[nd->depth] to s. If
+s is not NULL, we call __vfs_follow_link()
+__vfs_follow_link(): we call link_path_walk() walk the new path. we can se we
+are using a recursive call here. Return the value of link_path_walk.
+`follow_link(): if we get a return value from __vfs_follow_link() which is
+nonzero, then it must get something wrong rather than a new link.
+`nested_symlink(): we have to call walk_component() again because
+link_path_walk() called inside follow_link() just walk to predecessor of the
+link path. After walk_component(), in case the directory entry we walk to is a
+link again, so the whole process was put into a loop. Until return value of
+walk_component() is 0.
+
+`path_openat(): until this part, we have walked to the predecessor. We call
+do_last() to walk to the final part.
+do_last(): if nd->last_type is not LAST_NORM, then we just use handle_dots() or
+complete_walk() to do comlete the walk. If we didn't set the O_CREAT flag, we do
+lookup_fast(), if we find the path, then lookup finished otherwise out. We first
+try to complete_walk(), if it didn't happen, then we will call lookup_open()
+lookup_open(): first lookup_dacache(), it no dentry, call lookup_real(). If there
+is still no inode in detnry, we call vfs_create(), which will create the actual
+inode on fs.
+`path_openat()
+`do_sys_open(): call fsnotify_open()
+

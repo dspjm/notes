@@ -1,0 +1,223 @@
+bus_type { name, bus_attrs, dev_attrs, drv_attrs, match, uprssrp, p }
+device_driver { name, bus, owner, prssrp, p }
+class { name, owner, class_attrs, dev_attrs, *dev_kobject ... }
+device_type { name, attr_groups, u, release, pm }
+device { parent, p, kobj, init_name, device_typ, mutex, bus, driver, dev_t, class }
+
+drivers allocate devices
+
+when a device was plugged into the bus, the bus finds the bus driver, then
+execute match to find the proper device_driver, then execute probe, then
+execute probe of device_driver, it can create a device file, just register an
+interrupt line, or associate it with an user program.
+
+when you create a device file, the kernel search for proper driver from
+the bus type, major, minor and stuff in the inode, the information in inode
+comes from user who create the device file including udev.
+
+linux/bio.h
+bio_pair, bio_set, biovec_slab, bio_list and relevant functions. bio relevant
+  functions
+
+linux/blkdev.h
+request: queuelist for list_head in queuelist, *bio, *biotail, *q, *gendisk,
+  ref_count, char *buffer /*kaddr of current segment*/, timeout_list
+request_queue: queue_head
+block_device_operations
+
+linux/blk_types.h
+bio_vec: page, bv_len, bv_offset
+bio: bi_sector, bi_next, bi_bdev, bi_vcnt, bi_idx, bi_io_vec, bi_inline_vecs[0]
+bioflags
+
+ioctl nrbits 8, typebits 8, sizebits 14, dirbits 2
+
+linux/fs.h
+-lseek position macro definitions, f_mode bit macro, read and write types,
+  filesystem type and mount flag, inode flags and related macros, predefined
+  ioctl commands
+-file_stat: dynamic all file status struct, nr_files, nr_free_files, max_files
+-inode_stat: nr_inodes, nr_unused, dummy[5]
+-iov_iter: iov, nr_segs, iov_offset, count
+-read_descriptor_t: written, count, arg, error
+-address_space: inode *host, page_tree, i_mmap, nrpages, a_ops, 
+  backing_dev_info, private_list
+-block_device: bd_dev, bd_openers, bd_inode, bd_super, list_head bd_inodes,
+  void *bd_holder, bd_holders, bd_contains, bd_block_size, hd_struct bd_part,
+  bd_part_count, bd_disk, bd_list, bd_private
+-ionde: i_mode, i_uid, i_gid, i_op, i_sb, i_lock, i_flags, i_state,
+  dirtied_when, i_hash, i_wb_list, i_lru, i_sb_list, union { i_dentry, i_rcu },
+  i_count, i_nlink, i_rdev, i_blkbits, i_version, i_size, i_atime, i_mtime,
+  i_ctime, i_blocks, i_bytes, i_alloc_sem, i_fop, *i_flock, *i_mapping, i_data,
+  i_devices, union { *i_pipe, *i_bdev, *i_cdev }, void *i_private
+-file: union { fu_list, fu_rcuhead }, f_path, *f_op, f_lock, f_count, f_flags,
+  f_mode, f_pos, f_owner, *f_cred, f_ra, f_version, *private_data,
+  *f_mapping
+-super_block: s_list, s_dev, s_dirt, s_blocksize_bits, s_blocksize, s_maxbytes,
+  file_system_type *s_type, *s_op, s_flags, s_magic, dentry *s_root,
+  rw_semaphore s_umount, s_lock, s_count, s_active, s_inodes, s_anon,
+  s_files, s_dentry_lru, s_nr_dentry_unused, *s_bdev, *s_bdi, s_instances,
+  s_dquot, s_frozen, s_wait_unfrozen, s_id, s_uuid, *s_fs_info, s_mode,
+  s_subtype, s_options, *s_d_op
+-file_operations
+-inode_operations
+-super_operations
+-file_system_type: name, fs_flags, mount, owner, *next, fs_supers
+
+when the module was linked, it not only looks in symbols from it's own source
+files, but also the kernel's symbol list, the module and kernel uses the same
+address space. The extern declarations in headers is used for compiling.
+
+when a device file is accessed, it look for the driver relative to it. For
+instance, you create a char device file at home directory with dev 1:8, which
+would overlaps the file in /dev, when you cat it, you would get random bytes.
+same as block device files, so, it's identical whether the file is in /dev or
+any directory
+
+spinlock: when trying to lock, the function is uninterruptable until the lock is
+available, so if the computer is uniprocessor and the lock is unavailable when
+it tries, the computer would definitely go to spin. If the computer is
+multiprocessor, it just wait for the lock.
+While holding a spinlock, it's very dangerous to leave, because on uniprocessor,
+if there comes a process trying to acquire the lock, the computer would spin. On
+multiprocessor, the process trying to get the lock would wait for a long time.
+We see that if we are using multiprocessor and just try to hold one lock at
+once, we would never deadlock or spin, while on uniprocessor, the computer would
+spin once it tries to acquire a unavailable spinlock. So we can never let others
+trying to hold the lock when on uniprocessor.
+But if we try to hold multiple locks, that could lead to dead lock even on
+multiprocessor when two processes try to acquire the lock which the other is
+holding. On uniprocessor, if allow sleep, such situation would lead to spin as
+soon as either process try to acquire the other's lock.
+
+hard link can only made in the same filesystem
+
+init task refer to /etc/inittab
+inittab
+init: confs for init daemon
+init.d: sym link to rc.d/init.d
+rc.d rc related
+rc.d/init.d scripts can be executed by rc.d/rc*.d
+rc.d/rc*.d rc scripts for different runlevel which would be run by rc.sysinit
+rc.d/rc starting and stoping services when runlevel changed
+rc.d/rc.sysinit run once at boot time
+rc.d/rc.local run after all init calls, user defined
+
+==================================================================
+==================================================================
+
+
+kmalloc:
+
+When kernel starts, it allocate kmem_cache as the init keme_cache, in mm/slab.c
+kmem_cache_init(), assigned a global variable kmem_cache_boot to a global
+pointer kmem_cache. kmem_cache_node_init() would initialize the kernel nodes,
+which has slabs for all other kmem_cache structures.
+
+In kmem_cache, we have an kmem_cache_node *, and an array of array_cache
+*. The former is all the slab caches, it has node-number members, which contain
+three slab lists, partial, free and full. The later is pointer to an array of
+objects to use for per cpu, it's kind of a fast list. However, it has NR_CPUS +
+MAX_NUMNODES members because pointers after the NR_CPUS pointers pointers to
+kmem_cache structures.
+
+When you call kmalloc, it first decide which kmem_cache it should use depends on
+the size you are going to kmalloc. There are some nested functions for different
+checks, preprocessors, and then the real alloc happens at slab_alloc().
+
+__do_cache_alloc(): then you have three choices, either to 'SPREAD' to
+other node and call alternate_node_alloc(), or you call ____cache_alloc() to
+alloc memory on current node, or if local node has no memory left, you call
+____cache_alloc_node() to alloc memory on other node.
+
+____cache_alloc(): we get array_cache for current cpu, if it has nonzero
+avail, which means it has more than zero available object, then it gets the
+object address from ac_get_obj(). If avail == 0, then we call
+cache_alloc_refill() to refill the array cache and try to allocate an object.
+
+cache_alloc_refill(): it will first find the current node and find the
+slabs_partial list for it. If slabs_partial is empty, then find slabs_free. We
+use the first slab in the list. Then we use ac_put_obj to put proper objects in
+slab into array_cache. Then we move the slab to due slab list. We refresh
+free object numbers in kmem_cache_node with ac->avail, because ac was 0 before
+we enter cache_alloc_refill().
+
+After all this, if ac->avail is still zero or because things above never happen
+because conditions are not met, then, we have to grow our cache, by calling
+cache_grow()
+
+In cache_grow(), we first use kmem_get_pages() to get a free page, then we call
+alloc_pages_exact_node() and which calls __alloc_pages() which calls
+__alloc_pages_nodemask()
+
+__alloc_pages_nodemask(): now we enter the party of 'zones'. we call
+first_zones_zonelist() to find the preferred_zone depends on order of
+zone_list. Then we call get_page_from_freelist() to try to get a page from
+zone_list with a preferred_zone type
+
+get_page_from_freelist(): first it searches the zone list, and checks permission
+for the allocation, if some zone can allocate, go to try_this_zone, then it
+will call buffered_rmqueue()
+buffered_rmqueue(): first get per_cpu_pages and set pcp's page list of certain
+migratetype to list. Then call rmqueue_bulk() if order is 0
+rmqueue_bulk(): it will calls __rmqueue()
+__rmqueue(): it calls __rmqueue_smallest()
+__rmqueue_smallest(): it will get a free_list of certain migratetype from
+free_area with some order in the zone, and get a page from the list, decrease
+area->nr_free, it some order has empty free list, try to allocate with a greater
+order
+`__rmqueue(): if __rmqueue_smallest didn't get a page, it would call
+__rmqueue_fallback(), this function is the same as __rmqueue_smallest except it
+convert the migratetype to another according to a static fallback array
+`__rmqueue()
+`__rmqueue_bulk(): then it add the page it get to the list from parameter, it
+will try to get more than one page and add it to the list according to count
+from parameter
+`buffered_rmqueue(): we will page from the list we pass to __rmqueue_bulk, which
+is pcp list. If order is not zero, then we will call __rmqueue() directly. Last
+we call prep_new_page() and retry allocation if failed
+
+
+
+
+zone structure:
+unsigned long watermark[NR_WMARK];
+unsigned long           lowmem_reserve[MAX_NR_ZONES];	for each zone_type
+int node;						for numa, node number
+struct per_cpu_pageset __percpu *pageset;	has lru list
+struct free_area        free_area[MAX_ORDER];
+wait_queue_head_t       * wait_table;
+struct pglist_data      *zone_pgdat;
+unsigned long           zone_start_pfn;
+unsigned long           spanned_pages;
+unsigned long           present_pages;
+unsigned long           managed_pages;
+const char              *name; 
+
+
+
+pglist_data structure:
+struct zone node_zones[MAX_NR_ZONES];	zone list for different zone type
+struct zonelist node_zonelists[MAX_ZONELISTS];	zone list for different sizes
+int nr_zones;					zone number
+unsigned long node_start_pfn;
+unsigned long node_present_pages; 
+unsigned long node_spanned_pages; 
+int node_id;
+nodemask_t reclaim_nodes;
+wait_queue_head_t kswapd_wait;
+wait_queue_head_t pfmemalloc_wait;
+struct task_struct *kswapd;
+int kswapd_max_order;
+enum zone_type classzone_idx;
+
+
+zonelist_cache structure:
+unsigned short z_to_n[MAX_ZONES_PER_ZONELIST];	node number for some zone
+DECLARE_BITMAP(fullzones, MAX_ZONES_PER_ZONELIST);	bitmap track full zones
+unsigned long last_full_zap;
+
+
+==================================================================
+Wed Jun 26 03:26:41 CST 2013
+==================================================================
