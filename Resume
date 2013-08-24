@@ -1,0 +1,156 @@
+
+Basic Information:
+Name:          Pan Jianmin 潘建民
+Sex:           Male
+Age:           23
+Phone:         18311391329
+Email:         dspjm1@gmail.com
+University:    Tianjin Polytechnic University
+Degree:        Bachelor (Graduated in Jun 2013)
+Major:         Computer Science
+Residence:     Beijing
+
+
+Self Introduction:
+
+Good at in C, Linux kernel, bash, Linux filesystem.
+
+Familiar with C grammar tree and common GNU C extention, Intel ia32
+architecture(memory management, operation modes, multitask management,
+registers and process protection etc.) and instruction sets, POSIX.1-2008
+standard, USB 2.0 specification, important algorithms(dynamic
+programming, greedy algorithm, btree, etc.) and Linux filesystem.
+
+Understand Linux kernel filesystem code, including vfs, ext2. Understand numa
+and slab kernel code. Understand RCU, spinlocks, seq lock.
+
+Qualified bash skill.  Adroit with vim, git, mutt, Bugzilla and related software
+development tools and procedures.
+
+Understand IPv6, IPv6 statelss autoconfiguration, DHCPv6, Bonding, IST and
+other basic network knowledge. Read kernel source for socket, connect system
+call and related data structures.
+
+Know a little about scsi and UEFI.
+
+Proficient English ability, able to use and think in English smoothly.
+
+Used to study data mining with Python a little bit. Studied Java, C++, C#,
+html, Objective-C, android and IOS programming at school.
+
+Willing to read extricate standards and specifications. Want to study the most
+challenging technology. Work extremely hard.
+
+
+Vocational Experience:
+
+2013/03 -- Now
+Company:    Redhat, Inc. (Beijing)
+Job:        QE Engineer
+Department: Kenrel QE
+Duty:       Run manual tests, discover bugs, write automatic test cases, do
+  regression tests, verify refinements for different filesystems(including ext*,
+  nfs, vfs, btrfs, xfs, fuse, autofs, lvm etc..) across different platforms
+  (including i386, x86_64, ppc64, s390x, etc..) on differen versions of RHEL
+  and kernel versions. Provide useful debugging information to developpers. I
+  also write some test cases and test some bugs from network qe.
+
+2012/03 -- 2012/05
+Company:    Tianjin Tellyes Medical Education and Simulation Ltd.
+Job:        Software Engineer
+Duty:       C# UI and background database developer
+
+
+
+Relevant Project Experience:
+
+1.
+Name:        System Storage Manager test suite development.
+Date:        2013/05 -- 2013/07
+Environment: Linux, bash, ssm, lvm, btrfs, device-mapper
+Description: System Storage Manager is a storage management tool for RHEL,
+  it's an important new feature of RHEL7. It simplifies management of lvm,
+  btrfs and other volume backends. I did the basic functionality tests, write
+  test plan and develop our own test suite for the software. Reported many bugs
+  about the software and find some bugs of btrfs. Some patches were merged into
+  the upstream project. And my work earned the appreciation of my leader and
+  developper.
+  You can learn about the project http://storagemanager.sourceforge.net/ and see
+  my patches at the mailing list of the project.
+
+2.
+Name:        Tests for Linux kernel filesystem
+Date:        2013/03 -- Now
+Environment: Linux, kernel, beaker, bash, C, kdump, sfdisk, awk, Makefile, etc.
+Description: Please refer to the content in my vocational experience.
+
+3.
+Name:        Tests for Linux network
+Date:        2013/03 -- Now
+Environment: Linux, kernel, ping, dhclient, tcpdump, bonding, netperf.
+Description: Mostly to reproduce and analyze bugs. Take responsibility for the
+  irqbalance feature functionality test.
+
+4.
+Name:        Implementations of algorihms Date:        2013/04 -- 2013/05
+Environment: Linux, C
+Description: While I studied "Introduction to Algorithms", I wrote basically
+  all implementations of the algorithms until binomial heap.  You can see the
+  source code at https://github.com/dspjm/algorithms
+  *note: you can see the notes I wrote for kernel filesystem and kernel memory
+   management at the repository too
+
+5.
+Name:        USB mouse driver
+Date:        2012/10 -- 2012/11
+Environment: Linux, kernel, kbuild, C
+Description: Creates a char device, user can access firmware descriptors and
+  settings, retrieve packages sent by the mouse and choose different functions
+  of the mouse if supported by the device, through the char device.  You can see
+  the source code at https://github.com/dspjm/earlymodules as well as some
+  modules I have written
+
+6.
+Name:        String search software
+Date:        2012/07 -- 2012/07
+Environment: Linux, C
+Description: Resembles grep command, search particular pattern denoted by
+  user, supports regular expression using dfa.
+
+7.
+Name:        Cisco router software consultation
+Date:        2013/01 -- 2013/01
+Environment: Linux, bash, virtual machine
+Description: System installment software for bare Cisco servers and routers, composed by bootloader, system file and bash scripts.
+Duty:        Offer interpretation about source code of the software for a relative who is working for a Cisco lab.
+
+8.
+Name:        Tic Tac Toe with AI
+Date:        2010/10 -- 2010/10
+Environment: Windows, Java
+Description: Calculates every situation and chooses the step which renders
+  the largest possibility of winning.
+
+9.
+Name:        Miscellaneous
+Date:        From time to time
+Environment: Linux
+Descripton:  Some system backup, configuration, utility software.
+
+
+Certificates:
+TOEFL:       89
+CET6:        536
+Nationwide Software Technology Test:  Database System Engineer with total
+score of 126
+
+Personality:
+Courteous, benevolent, compliant.
+Love music and sport, run every day.
+Interested in Economics and Philosophy.
+
+The attachment has two notes I wrote when I am studying vfs and slab
+mechanism. You can read the full source on the link I wrote above.
+The stackoverflow account is dspjm.
+
+Thanks for reading
